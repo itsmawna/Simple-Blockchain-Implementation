@@ -1,13 +1,13 @@
 # run_blockchain.ps1
 
-# Fonction pour afficher proprement les transactions
+# Function to neatly display transactions
 function Show-Transactions($transactions) {
     foreach ($tx in $transactions) {
         Write-Host "Sender: $($tx.sender), Recipient: $($tx.recipient), Amount: $($tx.amount)" -ForegroundColor Cyan
     }
 }
 
-# Affiche la blockchain initiale
+# Display the initial blockchain
 Write-Host "`nBlockchain initiale:" -ForegroundColor Green
 $chain = Invoke-RestMethod -Uri "http://localhost:5000/chain" -Method Get
 foreach ($block in $chain.chain) {
@@ -15,7 +15,7 @@ foreach ($block in $chain.chain) {
     Show-Transactions $block.transactions
 }
 
-# Transactions à ajouter
+# Transactions to be added
 $transactions = @(
     @{ sender = "Alice"; recipient = "Bob"; amount = 10 },
     @{ sender = "Bob"; recipient = "Charlie"; amount = 5 },
@@ -28,23 +28,23 @@ foreach ($tx in $transactions) {
     $response = Invoke-RestMethod -Uri "http://localhost:5000/transactions/new" -Method Post -Body $txJson -ContentType "application/json"
     Write-Host $response.message -ForegroundColor Cyan
 
-    # Minage
-    Write-Host "Minage en cours pour le bloc $blockIndex..." -ForegroundColor Yellow
+    # Mining
+    Write-Host "Mining in progress for the block $blockIndex..." -ForegroundColor Yellow
     $mineResponse = Invoke-RestMethod -Uri "http://localhost:5000/mine" -Method Get
-    Write-Host "Bloc miné avec succès : Index $($mineResponse.block.index), Hash $($mineResponse.block.hash)" -ForegroundColor Green
+    Write-Host "Block successfully mined : Index $($mineResponse.block.index), Hash $($mineResponse.block.hash)" -ForegroundColor Green
 
     $blockIndex++
 }
 
-# Affiche la blockchain complète après minage
-Write-Host "`nBlockchain complète:" -ForegroundColor Green
+# Display the complete blockchain after mining
+Write-Host "`nComplete blockchain:" -ForegroundColor Green
 $chain = Invoke-RestMethod -Uri "http://localhost:5000/chain" -Method Get
 foreach ($block in $chain.chain) {
-    Write-Host "Bloc Index: $($block.index), Hash: $($block.hash), Previous Hash: $($block.previous_hash)"
+    Write-Host "Block Index: $($block.index), Hash: $($block.hash), Previous Hash: $($block.previous_hash)"
     Show-Transactions $block.transactions
 }
 
-# Validation de la blockchain
-Write-Host "`nValidation de la blockchain:" -ForegroundColor Green
+# Blockchain validation
+Write-Host "`nBlockchain validation:" -ForegroundColor Green
 $validate = Invoke-RestMethod -Uri "http://localhost:5000/validate" -Method Get
 Write-Host "$($validate.message)  Valid: $($validate.valid)" -ForegroundColor Magenta

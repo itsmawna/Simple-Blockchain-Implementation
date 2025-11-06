@@ -8,7 +8,7 @@ import requests
 # ==================== CLASSES ====================
 
 class Block:
-    """Classe représentant un bloc dans la blockchain"""
+    """Class representing a block in the blockchain"""
     def __init__(self, index, transactions, timestamp, previous_hash, nonce=0):
         self.index = index
         self.transactions = transactions
@@ -18,7 +18,7 @@ class Block:
         self.hash = self.calculate_hash()
 
     def calculate_hash(self):
-        """Calcule le hash SHA256 du bloc"""
+        """# Calculate the SHA256 hash of the block"""
         block_string = json.dumps({
             "index": self.index,
             "transactions": self.transactions,
@@ -29,15 +29,15 @@ class Block:
         return hashlib.sha256(block_string.encode()).hexdigest()
 
     def mine_block(self, difficulty):
-        """Mine le bloc avec la difficulté spécifiée"""
+        """Mine the block with the specified difficulty"""
         target = "0" * difficulty
         while not self.hash.startswith(target):
             self.nonce += 1
             self.hash = self.calculate_hash()
-        print(f"Bloc miné: {self.hash}")
+        print(f"Block mined: {self.hash}")
 
     def to_dict(self):
-        """Convertit le bloc en dictionnaire"""
+        """Convert the block to a dictionary"""
         return {
             "index": self.index,
             "transactions": self.transactions,
@@ -49,7 +49,7 @@ class Block:
 
 
 class Blockchain:
-    """Classe représentant la blockchain"""
+    """Class representing the blockchain"""
     def __init__(self, difficulty=4, mining_reward=1):
         self.chain = []
         self.pending_transactions = []
@@ -58,7 +58,7 @@ class Blockchain:
         self.nodes = set()
         self.create_genesis_block()
 
-    # ---------- Blocs ----------
+    # ---------- Blocks ----------
     def create_genesis_block(self):
         genesis_block = Block(0, [], time.time(), "0")
         genesis_block.mine_block(self.difficulty)
@@ -78,19 +78,19 @@ class Blockchain:
         self.pending_transactions.append(tx)
         return self.get_latest_block().index + 1
 
-    # ---------- Minage + synchro ----------
+    # ---------- Mining + synchro ----------
     def mine_pending_transactions(self, miner_address):
-        # 1) Avant de miner, on se met à jour pour éviter de miner sur une chaîne obsolète
+        # 1) Before mining, update to avoid mining on an outdated chain
         self.resolve_conflicts()
 
         if not self.pending_transactions:
-            print("Aucune transaction à miner")
+            print("No transactions to mine")
             return None
 
-        # snapshot pour ce bloc
+        # Snapshot for this block
         transactions_to_mine = self.pending_transactions.copy()
 
-        # Ajout de la récompense
+        # Adding the reward
         reward_tx = {
             "sender": "Network",
             "recipient": miner_address,
@@ -107,15 +107,15 @@ class Blockchain:
         )
         new_block.mine_block(self.difficulty)
 
-        # Ajout du bloc
+        #  Adding the block
         self.chain.append(new_block)
 
-        # Retirer uniquement les TX minées (hors récompense qui n'était pas dans la file)
+        # # Remove only the mined transactions (excluding the reward which was not in the queue)
         self.pending_transactions = [
             tx for tx in self.pending_transactions if tx not in transactions_to_mine
         ]
 
-        # 2) Après minage: on demande à tous les voisins de résoudre le consensus
+        # 2) After mining: request all neighbors to resolve consensus
         self.broadcast_resolve()
 
         return new_block
@@ -125,7 +125,7 @@ class Blockchain:
         if chain is None:
             chain = self.chain
 
-        # Le bloc 0 doit être un "genesis" cohérent
+        #Block 0 must be a consistent "genesis" block
         if len(chain) == 0:
             return False
 
@@ -133,75 +133,75 @@ class Blockchain:
             current = chain[i]
             previous = chain[i - 1]
 
-            # Recalculer le hash et vérifier le POW
+            # Recalculate the hash and verify the Proof of Work (PoW)
             if current.hash != current.calculate_hash():
-                print(f"Hash invalide pour le bloc {i}")
+                print(f" Invalid hash for the block {i}")
                 return False
             if current.previous_hash != previous.hash:
-                print(f"Chaînage invalide au bloc {i}")
+                print(f"Invalid chain at block {i}")
                 return False
             if not current.hash.startswith("0" * self.difficulty):
-                print(f"Preuve de travail invalide pour le bloc {i}")
+                print(f"Invalid proof of work for the block {i}")
                 return False
 
         return True
 
-    # ---------- Réseau ----------
+    # ---------- Network ----------
     @staticmethod
     def _normalize_address(address: str) -> str:
         """
-        Normalise un address potentiel : accepte
+        Normalize a potential address: accepts
         - 'http://host:port' / 'https://host:port'
         - 'host:port'
-        - 'host' (dans ce cas, on supposera port par défaut 5000)
-        Retourne 'host:port'
+        - 'host' (in this case, the default port 5000 is assumed)
+        Returns 'host:port'
         """
         address = address.strip().rstrip('/')
         parsed = urlparse(address if "://" in address else f"http://{address}")
         host = parsed.hostname
         port = parsed.port if parsed.port else 5000
         if not host:
-            raise ValueError("URL invalide")
+            raise ValueError("invalid URL")
         return f"{host}:{port}"
 
     def register_node(self, address):
         """
-        Ajoute un nœud voisin dans self.nodes.
-        - Supporte 'http(s)://host:port', 'host:port', 'host'
-        - Déduplique automatiquement via set()
+        Adds a neighboring node to self.nodes.
+        - Supports 'http(s)://host:port', 'host:port', 'host'
+        - Automatically deduplicates using set()
         """
         normalized = self._normalize_address(address)
         self.nodes.add(normalized)
 
     def get_chain_from_node(self, node):
         """
-        Récupère la blockchain complète d'un nœud distant et la
-        reconstruit en liste de Block. Retourne (length, chain_as_blocks) ou (None, None) si échec.
+        Retrieves the full blockchain from a remote node and reconstructs it as a list of Block objects.
+        Returns (length, chain_as_blocks) or (None, None) if retrieval fails.
         """
         try:
-            # on accepte http par défaut (nos petits labs locaux)
+            # Default to HTTP (useful for our local test labs)
             url = f"http://{node}/chain" if not node.startswith("http") else f"{node.rstrip('/')}/chain"
             resp = requests.get(url, timeout=5)
             if resp.status_code != 200:
                 return (None, None)
             data = resp.json()
             chain_dicts = data.get("chain", [])
-            # reconstruction en objets Block
+            # Reconstruct into Block objects
             chain_blocks = [self.dict_to_block(b) for b in chain_dicts]
             return (len(chain_blocks), chain_blocks)
         except requests.exceptions.RequestException as e:
-            print(f"Erreur en contactant {node}: {e}")
+            print(f" Error contacting {node}: {e}")
             return (None, None)
         except Exception as e:
-            print(f"Réponse inattendue de {node}: {e}")
+            print(f"Unexpected response from {node}: {e}")
             return (None, None)
 
     def resolve_conflicts(self):
         """
-        Algorithme de consensus :
-        - parcourt toutes les chaînes des voisins
-        - choisit la plus longue ET valide
-        - remplace la chaîne locale si une meilleure est trouvée
+        Consensus algorithm:
+        - Iterate over all neighbor chains
+        - Select the longest AND valid chain
+        - Replace local chain if a better one is found
         """
         max_length = len(self.chain)
         new_chain = None
@@ -217,26 +217,26 @@ class Blockchain:
 
         if new_chain:
             self.chain = new_chain
-            print("Chaîne remplacée par une plus longue valide provenant du réseau.")
+            print("Chain replaced by a longer valid chain from the network.")
             return True
 
-        print("Aucun remplacement : notre chaîne reste autorité.")
+        print("No replacement: our chain remains authoritative.")
         return False
 
     def broadcast_resolve(self):
         """
-        Demande à chaque voisin de déclencher son /nodes/resolve,
-        afin que tout le réseau converge après un minage local.
+        Ask each neighbor to trigger their /nodes/resolve
+        so that the entire network converges after a local mining.
         """
         for node in list(self.nodes):
             try:
                 url = f"http://{node}/nodes/resolve" if not node.startswith("http") else f"{node.rstrip('/')}/nodes/resolve"
                 requests.get(url, timeout=5)
             except requests.exceptions.RequestException:
-                # on ignore les erreurs réseau pour ne pas bloquer
+                # Ignore network errors to avoid blocking execution
                 pass
 
-    # ---------- Utilitaires ----------
+    # ---------- Utilities ----------
     def dict_to_block(self, block_dict):
         block = Block(
             block_dict['index'],
@@ -245,7 +245,7 @@ class Blockchain:
             block_dict['previous_hash'],
             block_dict['nonce']
         )
-        # Le constructeur calcule déjà un hash, mais on impose celui reçu
+        # The constructor already computes a hash, but we enforce the received one
         block.hash = block_dict['hash']
         return block
 
@@ -257,8 +257,6 @@ class Blockchain:
 
 app = Flask(__name__)
 blockchain = Blockchain()
-
-# Astuce: passer un ID de mineur via variable d'env ou paramètre CLI si tu veux.
 node_identifier = "node_1"
 
 
@@ -266,8 +264,8 @@ node_identifier = "node_1"
 def mine():
     block = blockchain.mine_pending_transactions(node_identifier)
     if block is None:
-        return jsonify({"message": "Aucune transaction à miner"}), 400
-    return jsonify({'message': 'Bloc miné avec succès', 'block': block.to_dict()}), 200
+        return jsonify({"message": "No transactions to mine"}), 400
+    return jsonify({'message': 'Block successfully mined', 'block': block.to_dict()}), 200
 
 
 @app.route('/transactions/new', methods=['POST'])
@@ -275,9 +273,9 @@ def new_transaction():
     values = request.get_json()
     required = ['sender', 'recipient', 'amount']
     if not values or not all(k in values for k in required):
-        return 'Valeurs manquantes', 400
+        return 'Missing values', 400
     index = blockchain.add_transaction(values['sender'], values['recipient'], values['amount'])
-    return jsonify({'message': f'Transaction ajoutée au bloc {index}'}), 201
+    return jsonify({'message': f'Transaction added to the block {index}'}), 201
 
 
 @app.route('/chain', methods=['GET'])
@@ -290,24 +288,24 @@ def register_nodes():
     values = request.get_json()
     nodes = values.get('nodes')
     if not nodes or not isinstance(nodes, list):
-        return "Erreur: Veuillez fournir une liste de nœuds", 400
+        return "Error: Please provide a list of nodes", 400
 
     for node in nodes:
         try:
             blockchain.register_node(node)
         except ValueError:
-            return f"URL invalide: {node}", 400
+            return f"Invalid URL: {node}", 400
 
-    return jsonify({'message': 'Nœuds ajoutés', 'total_nodes': list(blockchain.nodes)}), 201
+    return jsonify({'message': 'Nodes addes', 'total_nodes': list(blockchain.nodes)}), 201
 
 
 @app.route('/nodes/resolve', methods=['GET'])
 def consensus():
     replaced = blockchain.resolve_conflicts()
     if replaced:
-        return jsonify({'message': 'Notre chaîne a été remplacée', 'new_chain': blockchain.to_dict()}), 200
+        return jsonify({'message': 'Our chain has been replaced', 'new_chain': blockchain.to_dict()}), 200
     else:
-        return jsonify({'message': 'Notre chaîne fait autorité', 'chain': blockchain.to_dict()}), 200
+        return jsonify({'message': 'Our chain is authoritative', 'chain': blockchain.to_dict()}), 200
 
 
 @app.route('/pending', methods=['GET'])
@@ -317,7 +315,7 @@ def pending_transactions():
 @app.route('/validate', methods=['GET'])
 def validate_chain():
     is_valid = blockchain.is_chain_valid()
-    message = "La blockchain est valide" if is_valid else "La blockchain est invalide"
+    message = "The blockchain is valid" if is_valid else "the blockchain is not valid"
     return jsonify({'message': message, 'valid': is_valid}), 200
 
 
