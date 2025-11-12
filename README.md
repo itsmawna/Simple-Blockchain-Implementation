@@ -1,4 +1,14 @@
 # Simple Decentralized Blockchain  
+---
+![Python](https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white)
+![Flask](https://img.shields.io/badge/Flask-000000?style=for-the-badge&logo=flask&logoColor=white)
+![Blockchain](https://img.shields.io/badge/Blockchain-6C5CE7?style=for-the-badge)
+![Proof of Work](https://img.shields.io/badge/Proof_of_Work-FF6B6B?style=for-the-badge)
+![Distributed Systems](https://img.shields.io/badge/Distributed_Systems-00B894?style=for-the-badge)
+![Consensus Algorithm](https://img.shields.io/badge/Consensus-FF8C00?style=for-the-badge)
+![Automation Scripts](https://img.shields.io/badge/PowerShell-001F3F?style=for-the-badge&logo=powershell&logoColor=white)
+
+---
 
 ## Overview  
 This project implements a **basic blockchain system** featuring:  
